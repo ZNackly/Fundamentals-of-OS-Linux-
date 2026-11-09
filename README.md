@@ -1,13 +1,10 @@
-# Практическая работа №3
+<img width="633" height="139" alt="image" src="https://github.com/user-attachments/assets/2afd7141-a169-49c6-be87-f90be78807ac" /># Практическая работа №3
 ## Подсистема безопасности Linux: пользователи, права, SSH, процессы
 
 **Студент:** Сафин Даниил Рустемович
 **Университет:** ИТМО, факультет прикладной информатики
-**Группа:** АиСД TIP 1.3
-**Учётная запись студента на ВМ:** `sdr-1` (инициалы ФИО латиницей — при необходимости замените)
 **Дата:** 09.11.2026
 
-> Как пользоваться этим отчётом. Все команды, конфигурации и скрипты ниже готовы к запуску на ВМ Debian 13. Блоки «**Вывод**» помечены `ВСТАВИТЬ ВЫВОД` — это единственное, что нужно заполнить: выполните команду на своей ВМ и вставьте настоящий вывод (или скриншот). Ответы на вопросы в конце написаны полностью.
 
 ---
 
@@ -17,18 +14,16 @@
 # 1. SSH-сервер
 systemctl status ssh
 ss -ltnp | grep ':22'
-apt install openssh-server          # только если службы нет
+apt install openssh-server          
 
 # 2. Учётная запись студента
 adduser sdr-1
 
-# 3. Проброс порта (ВМ выключена; имя ВМ замените на своё)
-VBoxManage modifyvm "Debian13" --natpf1 "ssh,tcp,127.0.0.1,2221,,22"
-#   (или GUI: Настройки ВМ → Сеть → Дополнительно → Проброс портов:
+# 3. Проброс порта
+#    Настройки ВМ → Сеть → Дополнительно → Проброс портов:
 #    хост 127.0.0.1:2221 → гость :22)
 ```
 
-**Правка `/etc/ssh/sshd_config`** (параметры в начале файла, чтобы не перекрывались; проверить также `/etc/ssh/sshd_config.d/*.conf`):
 
 ```
 PermitRootLogin yes
@@ -37,40 +32,34 @@ LoginGraceTime 30
 ```
 
 ```bash
-sshd -t                                   # проверка синтаксиса (без вывода = ошибок нет)
+sshd -t                                   
 sshd -T | grep -Ei '^(permitrootlogin|maxauthtries|logingracetime)'
 systemctl restart ssh
 systemctl status ssh
 ss -ltnp | grep ':22'
 ```
 
-**Вывод `sshd -T` (изменённые параметры):**
-```
-ВСТАВИТЬ ВЫВОД (ожидается: permitrootlogin yes / maxauthtries 2 / logingracetime 30)
-```
-
-**Подключения с основного компьютера** (два окна терминала):
+**Подключения с основного компьютера**:
 ```bash
 ssh -p 2221 root@127.0.0.1
 ssh -p 2221 sdr-1@127.0.0.1
 ```
-Отпечаток ключа сервера при первом подключении: `ВСТАВИТЬ (SHA256:...)`
+Отпечаток ключа сервера при первом подключении:
+<img width="633" height="139" alt="image" src="https://github.com/user-attachments/assets/df350447-a74f-474a-a380-c46fc76cbe52" />
+
 
 **На ВМ:**
 ```bash
 who | tee -a otchet.txt
 ss -tnp | grep ssh | tee -a otchet.txt
 ```
-```
-ВСТАВИТЬ ВЫВОД who и ss (два соединения: 10.0.2.2:порт → 10.0.2.15:22)
-```
+<img width="449" height="96" alt="image" src="https://github.com/user-attachments/assets/9fa3e82f-73b8-4437-886c-b248dc598748" />
 
-**scp в обе стороны** (с основного компьютера):
+**scp в обе стороны**:
 ```bash
-scp -P 2221 test.txt sdr-1@127.0.0.1:/home/sdr-1/        # на ВМ
-scp -P 2221 sdr-1@127.0.0.1:/etc/hostname ./hostname_vm  # с ВМ
+scp -P 2221 test.txt sdr-1@127.0.0.1:/home/sdr-1/       
+scp -P 2221 sdr-1@127.0.0.1:/etc/hostname ./hostname_vm  
 ```
-(у `scp` порт задаётся заглавной `-P`, у `ssh` — строчной `-p`).
 
 ---
 
@@ -79,8 +68,7 @@ scp -P 2221 sdr-1@127.0.0.1:/etc/hostname ./hostname_vm  # с ВМ
 ### Скрипт `script31`
 ```bash
 #!/bin/bash
-# script31 — создание пользователей uN с паролями DerParolN
-# Использование: ./script31 <количество> <начальный_номер>   (например: ./script31 5 1)
+
 
 # 1. Проверка числа параметров
 if [ "$#" -ne 2 ]; then
@@ -121,25 +109,15 @@ done
 ```
 
 ```bash
-chmod +x script31
-./script31                    # проверка: нет параметров
-./script31 5 1                # создаёт u1–u5
-./script31 5 1                # повторный запуск: «уже существует»
+chmod +x script31             
+./script31 5 1                
+./script31 5 1                
 groupadd project
-usermod -aG project u1
-usermod -aG project u2
-id u1 u2                      # UID, GID и группы одной командой
-getent passwd u1 u2
-getent group project
-grep -E '^u[12]:' /etc/shadow
 ```
+<img width="371" height="112" alt="image" src="https://github.com/user-attachments/assets/4776cce3-a978-47a7-875f-8174adcd4152" />
 
-**Вывод `id u1 u2`, фрагменты passwd/group:**
-```
-ВСТАВИТЬ ВЫВОД
-```
 
-**Поля записи `/etc/passwd`** (`u1:x:1001:1001::/home/u1:/bin/bash`):
+<img width="498" height="137" alt="image" src="https://github.com/user-attachments/assets/3cada9ef-ef2d-4c67-9387-fdc58705c145" />
 
 | № | Поле | Назначение |
 |---|------|------------|
@@ -151,24 +129,26 @@ grep -E '^u[12]:' /etc/shadow
 | 6 | `/home/u1` | домашний каталог |
 | 7 | `/bin/bash` | шелл при входе |
 
-**Сравнение хешей u1 и u2 в `/etc/shadow`:** формат `$y$j9T$<соль>$<хеш>`. Пароли разные (`DerParol1`/`DerParol2`), поэтому и хеши разные; даже при одинаковых паролях они различались бы из-за случайной соли (см. вопрос 3).
+**Сравнение хешей u1 и u2. Пароли разные (`DerParol1`/`DerParol2`), поэтому и хеши разные; даже при одинаковых паролях они различались бы из-за случайной соли (см. вопрос 3).
+<img width="873" height="57" alt="image" src="https://github.com/user-attachments/assets/c4e67fb3-2b23-45bf-9f39-e73aeb57fd92" />
 
 **Групповая сессия (п. 6):**
 ```bash
-# на физическом терминале (tty1) войти как u3, выполнить:
-id                       # группы project нет
-# в другой сессии (root):
+# на физическом терминале:
+id                       
+# в другой сессии :
 su - u1 -c id            # project в списке групп
 usermod -aG project u3
 # в уже открытой сессии u3:
 id                       # project по-прежнему НЕТ
-# выйти (exit) и войти как u3 заново:
+# выйти и войти как u3 заново:
 id                       # project появилась
 ```
-**Почему не обновляется:** список групп процесса фиксируется ядром при входе (`login`/`su` вызывают `initgroups`) и наследуется всеми потомками. `usermod` меняет только `/etc/group`; уже работающие процессы свой список не перечитывают, новый вход — перечитывает.
+**Почему не обновляется:** список групп процесса фиксируется ядром при входе и наследуется всеми потомками. `usermod` меняет только `/etc/group`; уже работающие процессы свой список не перечитывают, новый вход — перечитывает.
 
 ```
-ВСТАВИТЬ ВЫВОД id до и после перелогина
+<img width="371" height="112" alt="image" src="https://github.com/user-attachments/assets/d9834abf-cf71-4834-8ef5-2892aa6f5b2e" />
+
 ```
 
 ---
@@ -179,22 +159,25 @@ id                       # project появилась
 # --- 1. /DATA: группа project пишет, остальные только читают ---
 mkdir /DATA
 chgrp project /DATA
-chmod 2775 /DATA            # rwxrwsr-x : sgid — новые файлы наследуют группу project
-# Чтобы члены группы могли ИЗМЕНЯТЬ файлы друг друга, файлы должны быть g+w:
-# в сессиях u1/u2 использовать umask 002 (или chmod g+w после создания)
+chmod 2775 /DATA            
 sudo -u u1 bash -c 'umask 002; echo test > /DATA/f_u1.txt'
-sudo -u u2 bash -c 'echo more >> /DATA/f_u1.txt'    # OK (группа project)
-sudo -u u2 rm /DATA/f_u1.txt                         # OK (w+x на каталог)
-sudo -u u4 cat /DATA/f_u1.txt                        # читать можно (если файл существует)
-sudo -u u4 touch /DATA/f_u4.txt                      # Permission denied
+sudo -u u2 bash -c 'echo more >> /DATA/f_u1.txt'   
+sudo -u u2 rm /DATA/f_u1.txt                         
+sudo -u u4 cat /DATA/f_u1.txt                       
+sudo -u u4 touch /DATA/f_u4.txt                    
 
 # --- 2. /DATA/sec1: все пишут, удалять только своё (sticky bit) ---
 mkdir /DATA/sec1
-chmod 1777 /DATA/sec1       # rwxrwxrwt
+chmod 1777 /DATA/sec1     
 sudo -u u1 touch /DATA/sec1/a_u1
 sudo -u u3 touch /DATA/sec1/a_u3
-sudo -u u3 rm /DATA/sec1/a_u1     # Operation not permitted
-sudo -u u3 rm /DATA/sec1/a_u3     # OK
+sudo -u u3 rm /DATA/sec1/a_u1     
+sudo -u u3 rm /DATA/sec1/a_u3
+
+<img width="434" height="39" alt="image" src="https://github.com/user-attachments/assets/c4095ab9-bbd9-4437-969f-fcb840fd1714" />
+
+<img width="639" height="38" alt="image" src="https://github.com/user-attachments/assets/521f7f7e-3567-48a2-a4fa-e5c99701ecd7" />
+
 
 # --- 3. /DATA/sec2: u1 — полный доступ, u4/u5 — чтение, остальные — ничего ---
 groupadd sec2ro
@@ -202,11 +185,11 @@ usermod -aG sec2ro u4
 usermod -aG sec2ro u5
 mkdir /DATA/sec2
 chown u1:sec2ro /DATA/sec2
-chmod 2750 /DATA/sec2       # rwxr-s---
+chmod 2750 /DATA/sec2       
 sudo -u u1 bash -c 'umask 027; echo secret > /DATA/sec2/doc.txt'   # файл 640 u1:sec2ro
-sudo -u u4 cat /DATA/sec2/doc.txt     # OK
-sudo -u u4 touch /DATA/sec2/x         # Permission denied
-sudo -u u3 ls /DATA/sec2              # Permission denied
+sudo -u u4 cat /DATA/sec2/doc.txt     
+sudo -u u4 touch /DATA/sec2/x        
+sudo -u u3 ls /DATA/sec2              
 
 # --- 4. /DATA/sec3: suid-копия nano ---
 mkdir /DATA/sec3
@@ -238,7 +221,11 @@ stat -c '%A %a %U:%G %n' /DATA /DATA/sec1 /DATA/sec2 /DATA/sec3 /DATA/sec3/nano
 
 **Вывод проверок и `ls -l`/`stat`:**
 ```
-ВСТАВИТЬ ВЫВОД (и разрешённые, и запрещённые действия)
+<img width="639" height="38" alt="image" src="https://github.com/user-attachments/assets/29f595f6-8ef7-4943-b04c-690f90a2b286" />
+
+<img width="583" height="72" alt="image" src="https://github.com/user-attachments/assets/11b24844-df15-4de4-87fa-99398c7f4c62" />
+<img width="574" height="82" alt="image" src="https://github.com/user-attachments/assets/4b885705-9889-47f6-8864-453316ac4501" />
+
 ```
 
 **Риск suid-nano с владельцем root:** любой пользователь получает редактор с правами root: можно править `/etc/shadow`, `/etc/sudoers`, добавить себе UID 0, а из nano запускать команды (`^R^X`) — это полный захват системы (см. вопрос 13).
@@ -249,7 +236,7 @@ stat -c '%A %a %U:%G %n' /DATA /DATA/sec1 /DATA/sec2 /DATA/sec3 /DATA/sec3/nano
 
 ```bash
 # На основном компьютере
-ssh-keygen -t ed25519                  # задать парольную фразу; ключи: ~/.ssh/id_ed25519 и .pub
+ssh-keygen -t ed25519                  
 ssh-copy-id -p 2221 -i ~/.ssh/id_ed25519.pub sdr-1@127.0.0.1   # Linux/macOS
 # Windows PowerShell (вручную):
 #   type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh -p 2221 sdr-1@127.0.0.1 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
@@ -262,7 +249,7 @@ ls -ld ~/.ssh ~/.ssh/authorized_keys
 # Проверка входа по ключу (первая сессия не закрывается!)
 ssh -p 2221 sdr-1@127.0.0.1
 ```
-> «Основная учётная запись» из прошлых работ — подставьте её имя вместо `sdr-1`, если ключ нужен для неё.
+<img width="513" height="299" alt="image" src="https://github.com/user-attachments/assets/adf5fa1f-141b-488a-b648-55b31d0e59ca" />
 
 **Изменения в `/etc/ssh/sshd_config`:**
 ```
