@@ -13,7 +13,6 @@
 ## Часть 1. Стенд и подключение по паролю
 
 ```bash
-# 1. SSH-сервер
 systemctl status ssh
 ss -ltnp | grep ':22'
 sudo apt install openssh-server          
@@ -193,7 +192,7 @@ sudo mkdir /DATA/sec1
 sudo chmod 1777 /DATA/sec1
 sudo -u u1 touch /DATA/sec1/a
 sudo -u u3 touch /DATA/sec1/b
-sudo -u u1 rm /DATA/sec1/b          # u1 пытается удалить файл u3
+sudo -u u1 rm /DATA/sec1/b          
 ```
 
 ![sticky bit на /DATA/sec1](img/03_sec1_sticky.png)
@@ -227,8 +226,8 @@ sudo -u u3 ls /DATA/sec2
 ```bash
 sudo mkdir /DATA/sec3
 sudo cp /usr/bin/nano /DATA/sec3/nano
-sudo chown u1:u1 /DATA/sec3/nano      # владелец u1, он же владелец /DATA/sec2
-sudo chmod 4755 /DATA/sec3/nano       # suid; chmod после chown, т. к. chown сбрасывает suid
+sudo chown u1:u1 /DATA/sec3/nano      
+sudo chmod 4755 /DATA/sec3/nano      
 sudo -u u3 /DATA/sec3/nano /DATA/sec2/x
 ```
 
@@ -314,9 +313,9 @@ sudo systemctl restart ssh
 ### 4.4. Проверки входа
 
 ```powershell
-ssh -p 2221 student-1@127.0.0.1                                 # по ключу
-ssh -p 2221 root@127.0.0.1                                      # вход root
-ssh -p 2221 -o PubkeyAuthentication=no student-1@127.0.0.1      # вход по паролю
+ssh -p 2221 student-1@127.0.0.1                                 
+ssh -p 2221 root@127.0.0.1                                      
+ssh -p 2221 -o PubkeyAuthentication=no student-1@127.0.0.1      
 ```
 
 ![проверки входа по SSH](img/04_ssh_checks.png)
@@ -344,9 +343,9 @@ which sudo || sudo apt install sudo
 sudo usermod -aG sudo drs-1
 # новый вход под drs-1:
 sudo -l
-sudo id                                      # uid=0(root)
-su -c 'pwd; echo $HOME; env | head'          # su: окружение пользователя в основном сохраняется
-su - -c 'pwd; echo $HOME; env | head'        # su -: полноценный вход, HOME=/root
+sudo id                                     
+su -c 'pwd; echo $HOME; env | head'        
+su - -c 'pwd; echo $HOME; env | head'       
 ```
 
 
@@ -433,8 +432,8 @@ kill -TERM 7848
 
 ```bash
 sleep 600 &
-kill -STOP <PID>; ps -o pid,stat,cmd -p <PID>      # STAT = T (остановлен)
-kill -CONT <PID>; ps -o pid,stat,cmd -p <PID>      # STAT = S (спит)
+kill -STOP <PID>; ps -o pid,stat,cmd -p <PID>     
+kill -CONT <PID>; ps -o pid,stat,cmd -p <PID>     
 kill <PID>
 ```
 
@@ -657,13 +656,13 @@ echo "Log written to: $LOG_FILE""
 Три проверки:
 
 ```bash
-sudo ./script_passport_v3.sh            # под root: полный отчёт
-./script_passport_v3.sh                 # под drs-1 из группы sudo: запрос пароля sudo, отчёт полный
-su - u3 -c ./script_passport_v3.sh      # без прав: отказ, код возврата 2 (echo $?)
-./script_passport_v3.sh -h              # справка
-./script_passport_v3.sh -o /tmp/my.txt  # свой файл отчёта
-cat PASSPORT/log/report.log             # после двух запусков — две строки
-ls PASSPORT/tmp                         # пусто: .tmp удалены
+sudo ./script_passport_v3.sh           
+./script_passport_v3.sh               
+su - u3 -c ./script_passport_v3.sh      
+./script_passport_v3.sh -h             
+./script_passport_v3.sh -o /tmp/my.txt  
+cat PASSPORT/log/report.log             
+ls PASSPORT/tmp                         
 ```
 >
 
@@ -709,7 +708,7 @@ mkdir /DATA/sec2
 chown root:root /DATA/sec2
 chmod 700 /DATA/sec2
 setfacl -m u:u1:rwx,u:u4:rx,u:u5:rx /DATA/sec2
-setfacl -d -m u:u1:rwx,u:u4:rx,u:u5:rx /DATA/sec2     # default ACL для новых файлов
+setfacl -d -m u:u1:rwx,u:u4:rx,u:u5:rx /DATA/sec2    
 getfacl /DATA/sec2
 ```
 
