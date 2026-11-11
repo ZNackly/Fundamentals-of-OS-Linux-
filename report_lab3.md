@@ -17,8 +17,6 @@
 systemctl status ssh
 ss -ltnp | grep ':22'
 sudo apt install openssh-server          
-
-# 2. Учётная запись студента
 sudo adduser drs-1
 ```
 
@@ -31,7 +29,7 @@ LoginGraceTime 30
 ```
 
 ```bash
-sudo sshd -t                                                       # проверка синтаксиса
+sudo sshd -t                                                       
 sudo sshd -T | grep -Ei '^(permitrootlogin|maxauthtries|logingracetime)'
 sudo systemctl restart ssh
 systemctl status ssh
@@ -57,8 +55,8 @@ ss -tnp | grep ssh | tee -a otchet.txt
 Копирование `scp` в обе стороны (у `scp` порт задаётся заглавной `-P`, у `ssh` — строчной `-p`):
 
 ```powershell
-scp -P 2221 test.txt drs-1@127.0.0.1:/home/drs-1/          # с основного компьютера на ВМ
-scp -P 2221 drs-1@127.0.0.1:/etc/hostname ./hostname_vm    # с ВМ на основной компьютер
+scp -P 2221 test.txt drs-1@127.0.0.1:/home/drs-1/          
+scp -P 2221 drs-1@127.0.0.1:/etc/hostname ./hostname_vm   
 ```
 
 
