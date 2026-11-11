@@ -16,15 +16,13 @@
 # 1. SSH-сервер
 systemctl status ssh
 ss -ltnp | grep ':22'
-sudo apt install openssh-server          # только если службы нет
+sudo apt install openssh-server          
 
 # 2. Учётная запись студента
 sudo adduser drs-1
 ```
 
 Проброс порта в VirtualBox (Настройки ВМ → Сеть → Дополнительно → Проброс портов): адрес хоста `127.0.0.1`, порт хоста `2221`, порт гостя `22`.
-
-Правка `/etc/ssh/sshd_config` (значения проверить также в `/etc/ssh/sshd_config.d/*.conf`, там может быть другое, приоритетное):
 
 ```
 PermitRootLogin yes
@@ -75,44 +73,37 @@ scp -P 2221 drs-1@127.0.0.1:/etc/hostname ./hostname_vm    # с ВМ на осн
 
 ```bash
 #!/bin/bash
-# script31 — создание пользователей uN с паролями DerParolN
-# Использование: ./script31 <количество> <начальный_номер>   (например: ./script31 5 1)
+set -u
 
-# 1. Проверка числа параметров
-if [ "$#" -ne 2 ]; then
-    echo "Использование: $0 <количество> <начальный_номер>" >&2
+if [[ $# -ne 2 ]]; then
+    echo "Usage: $0 <count> <start_number>" >&2
     exit 1
 fi
 
-# 2. Параметры должны быть положительными целыми числами
-case "$1$2" in
-    *[!0-9]*) echo "Ошибка: параметры должны быть целыми неотрицательными числами" >&2; exit 1 ;;
-esac
-if [ "$1" -lt 1 ]; then
-    echo "Ошибка: количество пользователей должно быть >= 1" >&2
+if [[ $EUID -ne 0 ]]; then
+    echo "Error: run as root" >&2
     exit 1
 fi
 
-# 3. Проверка прав (нужен root)
-if [ "$(id -u)" -ne 0 ]; then
-    echo "Ошибка: скрипт нужно запускать от root (или через sudo)" >&2
-    exit 2
+COUNT="$1"
+START="$2"
+
+if ! [[ "$COUNT" =~ ^[0-9]+$ && "$START" =~ ^[0-9]+$ ]]; then
+    echo "Error: parameters must be integers" >&2
+    exit 1
 fi
 
-count=$1
-start=$2
-end=$((start + count - 1))
-
-for n in $(seq "$start" "$end"); do
-    name="u$n"
-    # 4. Не создаём повторно, если пользователь уже есть
-    if id "$name" >/dev/null 2>&1; then
-        echo "Пользователь $name уже существует — пропускаю"
+for (( i=0; i<COUNT; i++ )); do
+    N=$(( START + i ))
+    USER="u${N}"
+    PASS="DerParol${N}"
+    if id "$USER" >/dev/null 2>&1; then
+        echo "User $USER already exists, skipping"
         continue
     fi
-    adduser --disabled-password --gecos "" "$name" >/dev/null
-    echo "$name:DerParol$n" | chpasswd
-    echo "Создан пользователь $name (пароль DerParol$n)"
+    useradd -m -s /bin/bash "$USER"
+    echo "${USER}:${PASS}" | chpasswd
+    echo "Created $USER"
 done
 ```
 
@@ -131,7 +122,7 @@ sudo usermod -aG project u2
 
 ### Членство в группе и вывод `id`
 
-Проверка членства командой `id` (на скриншоте сверху видна команда `sudo usermod -aG project u2`). Группа `project` получила GID 1007, у `u1` UID 1002, у `u2` UID 1003:
+Проверка членства командой `id`:
 
 ![id u1, id u2](img/02_id_u1_u2.png)
 
@@ -245,7 +236,6 @@ sudo -u u3 /DATA/sec3/nano /DATA/sec2/x
 
 Идея: запущенный любым пользователем `nano` исполняется с правами владельца `u1` (suid), поэтому может изменять файлы в `/DATA/sec2`.
 
-> **[Нужен скриншот]** `ls -l /DATA/sec3/nano` (`-rwsr-xr-x u1 u1`) и правка файла в `/DATA/sec2` под `u3` через этот `nano`.
 
 ### 3.5. suid-файлы в системе
 
@@ -272,7 +262,6 @@ ls -ld /DATA /DATA/sec1 /DATA/sec2 /DATA/sec3
 | `/DATA/sec2` | `drwxr-x---` | 750 | u1:readers | u1: rwx; readers (u4, u5): r-x; остальные: ничего |
 | `/DATA/sec3` | `drwxr-xr-x` | 755 | root:root | всем чтение и вход; внутри suid-копия nano |
 
-> **[Нужен скриншот]** `ls -l /DATA /DATA/sec1 /DATA/sec2 /DATA/sec3` (файлы внутри) и при необходимости `stat`.
 
 ---
 
@@ -323,7 +312,6 @@ sudo sshd -T | grep -Ei '^(permitrootlogin|pubkeyauthentication|authorizedkeysfi
 sudo systemctl restart ssh
 ```
 
-> **[Нужен скриншот]** вывод `sshd -T` с новыми значениями (`permitrootlogin no`, `pubkeyauthentication yes`, `authorizedkeysfile .ssh/authorized_keys`, `passwordauthentication no`).
 
 ### 4.4. Проверки входа
 
@@ -363,7 +351,6 @@ su -c 'pwd; echo $HOME; env | head'          # su: окружение польз
 su - -c 'pwd; echo $HOME; env | head'        # su -: полноценный вход, HOME=/root
 ```
 
-> **[Нужен скриншот]** `sudo -l`, `sudo id` и сравнение вывода `su` и `su -` (`pwd`, `$HOME`, `env | head`).
 
 ### 5.2. Правило sudo для `u1`
 
@@ -386,7 +373,6 @@ sudo visudo -c
 ls -l /etc/sudoers.d/u1
 ```
 
-> **[Нужен скриншот]** повторный `sudo visudo -c` без ошибки и `ls -l /etc/sudoers.d/u1` (`-r--r----- root root`).
 
 ### 5.3. Проверка ограничений
 
@@ -401,7 +387,6 @@ sudo -u u1 sudo ls /root
 - `sudo passwd u2` под `u1` работает: пароль `u2` изменён (`password updated successfully`).
 - `sudo passwd root` и `sudo ls /root` отклонены: `Sorry, user u1 is not allowed to execute '…' as root`.
 
-> **[Нужен скриншот или описание]** попытка обойти ограничение (например, `sudo passwd u2 root` или `sudo passwd -S root`) и её результат.
 
 ### 5.4. htop
 
@@ -414,7 +399,6 @@ htop        # F6 — сортировка (MEM%), F5 — дерево, F4/F3 —
 
 ![htop, сортировка по памяти](img/05_htop.png)
 
-> **[Нужен скриншот]** `htop` в древовидном режиме (F5) с найденным процессом `sshd` своего подключения.
 
 ### 5.5. Цепочка родитель — потомок
 
@@ -429,7 +413,6 @@ pstree -sp $$
 
 Цепочка от оболочки до PID 1 (по PPID): `bash (7558)` ← `gnome-terminal- (7551)` ← `systemd (1361)`, пользовательский менеджер ← `systemd (1)`. Родитель оболочки — процесс эмулятора терминала `gnome-terminal`; при входе по SSH на его месте был бы процесс `sshd: <пользователь>@pts/N`.
 
-> **[Нужен скриншот]** `ps -eo pid,ppid,user,stat,cmd` с процессами своей сессии (по ним строится цепочка).
 
 ### 5.6. Сигналы SIGTERM и SIGKILL
 
@@ -445,7 +428,6 @@ kill -TERM 7848
 
 ![sleep 600 завершён по SIGTERM](img/05_sleep_terminated.png)
 
-> **[Нужен скриншот]** определение PID и PPID у `sleep 600` (`ps -o pid,ppid,stat,cmd -C sleep`) и повторный запуск с `kill -9` (во второй сессии должно появиться `Killed`).
 
 **Различие:** `SIGTERM` (15) — вежливая просьба завершиться, процесс может перехватить сигнал, закрыть файлы и завершиться сам (оболочка пишет `Terminated`). `SIGKILL` (9) ядро исполняет принудительно, перехватить или игнорировать его нельзя (оболочка пишет `Killed`).
 
@@ -458,7 +440,6 @@ kill -CONT <PID>; ps -o pid,stat,cmd -p <PID>      # STAT = S (спит)
 kill <PID>
 ```
 
-> **[Нужен скриншот]** `ps` до и после `SIGSTOP`/`SIGCONT`.
 
 ### 5.8. Скрипт `script32`
 
