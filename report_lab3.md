@@ -4,7 +4,6 @@
 | | |
 |---|---|
 | **Студент** | Сафин Даниил Рустемович |
-| **Группа** | АиСД TIP 1.3, факультет прикладной информатики, ИТМО |
 | **Дата** | 11.11.2026 |
 | **Стенд** | Debian 13 в VirtualBox (хост ВМ `Debian23`, ядро 6.12.116+deb13-amd64), сеть NAT, проброс 127.0.0.1:2221 → 22 |
 | **Учётные записи** | `vboxuser` — администратор ВМ (sudo); `drs-1` — учётная запись студента (Часть 1); `student-1` — основная учётная запись из предыдущих работ (Часть 4, вход по ключу) |
@@ -41,9 +40,6 @@ systemctl status ssh
 ss -ltnp | grep ':22'
 ```
 
-> **[Нужен скриншот]** `systemctl status ssh` и `ss -ltnp` (два способа показать, что служба слушает порт 22).
->
-> **[Нужен скриншот]** вывод `sshd -T`: `permitrootlogin yes`, `maxauthtries 2`, `logingracetime 30`.
 
 Подключения с основного компьютера (два окна терминала):
 
@@ -59,9 +55,6 @@ who | tee -a otchet.txt
 ss -tnp | grep ssh | tee -a otchet.txt
 ```
 
-> **[Нужен скриншот]** отпечаток ключа сервера при первом подключении.
->
-> **[Нужен скриншот]** вывод `who` и `ss -tnp` при двух одновременных сессиях (root и drs-1).
 
 Копирование `scp` в обе стороны (у `scp` порт задаётся заглавной `-P`, у `ssh` — строчной `-p`):
 
@@ -70,7 +63,7 @@ scp -P 2221 test.txt drs-1@127.0.0.1:/home/drs-1/          # с основног
 scp -P 2221 drs-1@127.0.0.1:/etc/hostname ./hostname_vm    # с ВМ на основной компьютер
 ```
 
-> **[Нужен скриншот]** выполнение обеих команд `scp`.
+
 
 ---
 
@@ -127,14 +120,14 @@ done
 
 ```bash
 chmod +x script31
-sudo ./script31 5 1            # создаёт u1–u5
-sudo ./script31 5 1            # повторный запуск: «уже существует», без ошибок
+sudo ./script31 5 1          
+sudo ./script31 5 1            
 sudo groupadd project
 sudo usermod -aG project u1
 sudo usermod -aG project u2
 ```
 
-> **[Нужен скриншот]** запуск `sudo ./script31 5 1` (создание) и повторный запуск (пропуск существующих), а также `./script31` без параметров и без прав.
+
 
 ### Членство в группе и вывод `id`
 
@@ -218,7 +211,6 @@ sudo -u u1 rm /DATA/sec1/b          # u1 пытается удалить фай�
 
 Записывать в каталог может любой пользователь. При попытке удалить чужой файл `b` `rm` сначала спрашивает подтверждение (у `u1` нет записи в этот файл); из-за sticky bit удаление чужого файла всё равно не пройдёт (`Operation not permitted`), удалить можно только свои файлы.
 
-> **[Нужен скриншот]** продолжение: ответ `y` на запрос `rm` и сообщение `Operation not permitted`, затем успешное удаление `u3` собственного файла `b`.
 
 ### 3.3. Каталог `/DATA/sec2`
 
@@ -381,7 +373,6 @@ su - -c 'pwd; echo $HOME; env | head'        # su -: полноценный вх
 u1 ALL=(root) /usr/bin/passwd [A-Za-z]*, !/usr/bin/passwd root, !/usr/bin/passwd *root*
 ```
 
-> **[Нужен скриншот]** `sudo cat /etc/sudoers.d/u1` (содержимое должно совпадать с правилом выше; если правило другое — заменить текст).
 
 Проверка файла утилитой `visudo -c`: на скриншоте первая проверка показала неверные права на файл (`/etc/sudoers.d/u1: bad permissions, should be mode 0440`):
 
@@ -492,7 +483,6 @@ bg                 # продолжение в фоне
 kill %1            # завершение
 ```
 
-> **[Нужен скриншот]** `jobs`, `echo $!`, `fg`, Ctrl+Z, `bg`, `kill` и содержимое `~/script32.log`.
 
 ### 5.9. SIGHUP: запуск с `&` и с `nohup`
 
@@ -506,12 +496,7 @@ ps -o pid,ppid,cmd -C script32
 pkill -f script32        # по окончании
 ```
 
-| Запуск | Процесс жив после `exit`? | Файл пишется? | PPID |
-|---|---|---|---|
-| `&` | _вписать_ | _вписать_ | _вписать_ |
-| `nohup … &` | _вписать_ | _вписать_ | _вписать_ |
 
-> **[Нужен скриншот]** оба эксперимента и PPID у `nohup`-варианта. Ожидаемо: без `nohup` процесс получает `SIGHUP` и завершается; с `nohup` продолжает работать, а PPID становится PID 1 или PID `systemd --user` (на скриншоте `pstree` он имеет PID 1361).
 
 ---
 
@@ -530,259 +515,164 @@ pkill -f script32        # по окончании
 
 ```bash
 #!/bin/bash
-# script_passport_v3.sh — инвентаризация + аудит безопасности (формат отчёта v3)
-# Этапы (как в ПР №1 и №2): 1) сбор сырых данных в PASSPORT/tmp/*.tmp
-#                           2) формирование отчёта из временных файлов
-#                           3) запись строки о запуске в лог
-# Для полного отчёта нужны права root или sudo.
-
-export PATH="$PATH:/usr/sbin:/sbin"
 
 FORMAT_VERSION="v3"
-PASSPORT_DIR="PASSPORT"
-TMP_DIR="$PASSPORT_DIR/tmp"
-LOG_DIR="$PASSPORT_DIR/log"
-LOG_FILE="$LOG_DIR/report.log"
-REPORT="$PASSPORT_DIR/inventory.txt"   # по умолчанию; меняется параметром -o
-PRIV_MODE=""
-SUDO=""
+DEFAULT_REPORT="PASSPORT/inventory.txt"
+LOG_FILE="PASSPORT/log/report.log"
+TMP_DIR="PASSPORT/tmp"
 
-# ---------------------------------------------------------------- функции --
+die() {
+    echo "Error: $*" >&2
+    exit 1
+}
+
+cleanup() {
+    if [ -d "$TMP_DIR" ]; then
+        find "$TMP_DIR" -name "*.tmp" -delete
+    fi
+}
+trap cleanup EXIT INT TERM
 
 usage() {
-    cat <<EOF
-Использование: $0 [-h] [-o файл_отчёта]
-  -h          показать эту справку
-  -o файл     имя итогового отчёта (по умолчанию: $REPORT)
-Скрипт нужно запускать от root или от пользователя из группы sudo.
-EOF
-}
-
-die() {            # die "сообщение" [код_выхода]
-    echo "Ошибка: $1" >&2
-    exit "${2:-1}"
-}
-
-cleanup() {        # удаление временных файлов при любом завершении
-    [ -d "$TMP_DIR" ] && find "$TMP_DIR" -name '*.tmp' -delete 2>/dev/null
+    echo "Usage: $0 [-h] [report_file]"
+    echo "  -h              Show this help message"
+    echo "  report_file     Path to output report (default: $DEFAULT_REPORT)"
+    exit 0
 }
 
 check_privileges() {
-    if [ "$(id -u)" -eq 0 ]; then
-        PRIV_MODE="root"; SUDO=""
-        return 0
-    fi
-    if id -nG | tr ' ' '\n' | grep -qx sudo && command -v sudo >/dev/null 2>&1; then
-        if sudo -v 2>/dev/null; then
-            PRIV_MODE="sudo"; SUDO="sudo"
-            return 0
+    if [ "$EUID" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            SUDO="sudo"
+            PRIV_MODE="sudo"
+        else
+            die "Root privileges required. Run as root or via sudo."
         fi
-        die "sudo не работает (неверный пароль или нет прав)" 3
+    else
+        SUDO=""
+        PRIV_MODE="root"
     fi
-    die "недостаточно прав: запустите от root или от пользователя из группы sudo" 2
 }
 
-run_priv() {       # sudo используется только когда он реально нужен
-    if [ -n "$SUDO" ]; then sudo "$@"; else "$@"; fi
-}
-
-check_tool() {     # check_tool утилита пакет
-    command -v "$1" >/dev/null 2>&1 && return 0
-    echo "нет данных: утилита '$1' не найдена (установите пакет: apt install $2)"
-    return 1
-}
-
-write_section() {  # write_section "Заголовок" файл
-    {
-        echo "=== $1 ==="
-        if [ -s "$2" ]; then cat "$2"; else echo "нет данных"; fi
-        echo
-    } >> "$REPORT"
+check_tool() {
+    local tool=$1
+    local pkg=$2
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "Warning: tool '$tool' not found. Please install package '$pkg'." >&2
+        return 1
+    fi
+    return 0
 }
 
 log_run() {
-    echo "Скрипт был запущен: $(date) | формат отчёта: $FORMAT_VERSION | режим: $PRIV_MODE | отчёт: $REPORT" >> "$LOG_FILE"
+    mkdir -p "$(dirname "$LOG_FILE")"
+    echo "Script run: $(date '+%Y-%m-%d %H:%M:%S') | Format: $FORMAT_VERSION | Report: $REPORT_FILE" >> "$LOG_FILE"
 }
 
-dmi() {            # dmi ключ_dmidecode
-    local v
-    v=$(run_priv dmidecode -s "$1" 2>/dev/null | head -1)
-    echo "${v:-нет данных}"
-}
-
-last_login() {     # последний вход пользователя
-    local out
-    check_tool lastlog2 lastlog2 >/dev/null || { echo "нет данных (lastlog2 не установлен)"; return; }
-    out=$(lastlog2 --user "$1" 2>/dev/null | tail -n +2 | tr -s ' ')
-    echo "${out:-нет данных}"
-}
-
-pass_change() {    # дата последней смены пароля
-    local v
-    check_tool chage passwd >/dev/null || { echo "нет данных (chage не установлен)"; return; }
-    v=$(run_priv env LC_ALL=C chage -l "$1" 2>/dev/null | sed -n 's/^Last password change[^:]*: *//p')
-    echo "${v:-нет данных}"
-}
-
-prepare_dirs() {
-    mkdir -p "$TMP_DIR" "$LOG_DIR" "$(dirname "$REPORT")" || die "не удалось создать каталоги" 4
-}
-
-# ------------------------------------------------- этап 1: сбор данных -----
-
-collect_basic() {
-    { date; hostname; } > "$TMP_DIR/host.tmp"
-    { echo "Пользователь: $(whoami)"; who; } > "$TMP_DIR/user.tmp"
-    { pwd; ls -la; } > "$TMP_DIR/dir.tmp"
-}
-
-collect_system() {
-    { echo "Ядро: $(uname -sr)"; echo "Разрядность/архитектура: $(uname -m)"; } > "$TMP_DIR/kernel.tmp"
-    grep -E '^(PRETTY_NAME|VERSION)=' /etc/os-release > "$TMP_DIR/os.tmp" 2>/dev/null
+write_section() {
+    local title=$1
+    local file=$2
     {
-        if check_tool lscpu util-linux; then
-            echo "Модель: $(LC_ALL=C lscpu | sed -n 's/^Model name: *//p')"
-            mhz=$(LC_ALL=C lscpu | sed -n 's/^CPU max MHz: *//p')
-            [ -z "$mhz" ] && mhz=$(sed -n 's/^cpu MHz[[:space:]]*: *//p' /proc/cpuinfo | head -1)
-            echo "Частота (МГц): ${mhz:-нет данных}"
+        echo ""
+        echo "=== $title ==="
+        if [ -s "$file" ]; then
+            cat "$file"
+        else
+            echo "No data available."
         fi
-    } > "$TMP_DIR/cpu.tmp"
-    { nproc 2>/dev/null || grep -c '^processor' /proc/cpuinfo; } > "$TMP_DIR/cores.tmp"
-    { check_tool lscpu util-linux && LC_ALL=C lscpu | grep -E '^L[0-9][a-z]* cache'; } > "$TMP_DIR/cache.tmp"
-    awk '/^MemTotal/ {printf "%.0f МБ (%s кБ)\n", $2/1024, $2}' /proc/meminfo > "$TMP_DIR/mem.tmp"
-    {
-        if check_tool dmidecode dmidecode; then
-            echo "Производитель платы: $(dmi baseboard-manufacturer)"
-            echo "Модель платы: $(dmi baseboard-product-name)"
-        fi
-    } > "$TMP_DIR/board.tmp"
-    {
-        if check_tool dmidecode dmidecode; then
-            echo "Версия BIOS: $(dmi bios-version)"
-            echo "Дата выпуска BIOS: $(dmi bios-release-date)"
-        fi
-    } > "$TMP_DIR/bios.tmp"
-    { check_tool lspci pciutils && lspci; } > "$TMP_DIR/pci.tmp"
+    } >> "$REPORT_FILE"
 }
 
-collect_users() {
-    {
-        for u in $(getent passwd | awk -F: '$1=="root" || ($3>=1000 && $3<65534) {print $1}'); do
-            echo "Пользователь: $u"
-            echo "  UID: $(id -u "$u")"
-            echo "  Группы: $(id -nG "$u")"
-            echo "  Последний вход: $(last_login "$u")"
-            echo "  Последняя смена пароля: $(pass_change "$u")"
-        done
-    } > "$TMP_DIR/users.tmp"
-}
-
-collect_sshd() {
-    local eff p src
-    {
-        if check_tool sshd openssh-server; then
-            eff=$(run_priv sshd -T 2>/dev/null)
-            if [ -z "$eff" ]; then
-                echo "нет данных: sshd -T не выполнился (нужны права root или ошибка конфигурации)"
-            else
-                echo "Эффективные значения (sshd -T):"
-                echo "$eff" | grep -E '^(permitrootlogin|port|logingracetime|maxauthtries|passwordauthentication|pubkeyauthentication) ' | sed 's/^/  /'
-                echo
-                echo "Происхождение значений:"
-                for p in PermitRootLogin Port LoginGraceTime MaxAuthTries PasswordAuthentication PubkeyAuthentication; do
-                    src=$(grep -iHE "^[[:space:]]*$p[[:space:]]" /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | head -1 | cut -d: -f1)
-                    if [ -n "$src" ]; then
-                        echo "  $p: задан явно ($src)"
-                    else
-                        echo "  $p: взят по умолчанию"
-                    fi
-                done
-            fi
-        fi
-    } > "$TMP_DIR/sshd.tmp"
-}
-
-collect_top5() {
-    { check_tool ps procps && ps -eo pid,ppid,user,%mem,comm --sort=-%mem | head -6; } > "$TMP_DIR/top5.tmp"
-}
-
-collect_suspicious() {
-    local empty uid0
-    {
-        echo "Пользователи с пустым паролем в /etc/shadow:"
-        empty=$(run_priv awk -F: '$2=="" {print $1}' /etc/shadow 2>/dev/null)
-        if [ -n "$empty" ]; then echo "$empty" | sed 's/^/  /'; else echo "  не обнаружено"; fi
-        echo "Пользователи с UID 0, кроме root:"
-        uid0=$(getent passwd | awk -F: '$3==0 && $1!="root" {print $1}')
-        if [ -n "$uid0" ]; then echo "$uid0" | sed 's/^/  /'; else echo "  не обнаружено"; fi
-    } > "$TMP_DIR/suspicious.tmp"
-}
-
-collect_suid() {
-    local out
-    out=$(find /usr/bin /usr/sbin -type f -perm -4000 -exec ls -l {} + 2>/dev/null | sort -u)
-    echo "${out:-suid-файлов не найдено}" > "$TMP_DIR/suid.tmp"
-}
-
-# ------------------------------------------- этап 2: формирование отчёта ----
-
-build_report() {
-    {
-        echo "ОТЧЁТ ОБ ИНВЕНТАРИЗАЦИИ (формат $FORMAT_VERSION)"
-        echo "Режим запуска: $PRIV_MODE"
-        echo "Внимание: чтение /etc/shadow, chage -l, sshd -T и dmidecode требуют прав root или sudo."
-        echo
-    } > "$REPORT"
-    write_section "Информация о хосте"        "$TMP_DIR/host.tmp"
-    write_section "Пользователь, запустивший скрипт" "$TMP_DIR/user.tmp"
-    write_section "Текущий каталог и файлы"   "$TMP_DIR/dir.tmp"
-    write_section "Ядро и разрядность"        "$TMP_DIR/kernel.tmp"
-    write_section "Операционная система"      "$TMP_DIR/os.tmp"
-    write_section "Процессор"                 "$TMP_DIR/cpu.tmp"
-    write_section "Логические ядра"           "$TMP_DIR/cores.tmp"
-    write_section "Кэш процессора"            "$TMP_DIR/cache.tmp"
-    write_section "Физическая память"         "$TMP_DIR/mem.tmp"
-    write_section "Материнская плата"         "$TMP_DIR/board.tmp"
-    write_section "BIOS"                      "$TMP_DIR/bios.tmp"
-    write_section "Устройства PCI"            "$TMP_DIR/pci.tmp"
-    write_section "Пользователи"              "$TMP_DIR/users.tmp"
-    write_section "Параметры sshd"            "$TMP_DIR/sshd.tmp"
-    write_section "Топ-5 процессов по памяти" "$TMP_DIR/top5.tmp"
-    write_section "Подозрительные учётные записи" "$TMP_DIR/suspicious.tmp"
-    write_section "Файлы с suid (/usr/bin, /usr/sbin)" "$TMP_DIR/suid.tmp"
-}
-
-# ------------------------------------------------------------------ main ---
-
-trap cleanup EXIT
-trap 'echo "Прервано пользователем" >&2; exit 130' INT TERM
-
-while getopts ":ho:" opt; do
-    case "$opt" in
-        h) usage; exit 0 ;;
-        o) REPORT="$OPTARG" ;;
-        :) echo "Ошибка: параметру -$OPTARG нужно значение" >&2; usage >&2; exit 1 ;;
-        *) usage >&2; exit 1 ;;
+REPORT_FILE="$DEFAULT_REPORT"
+while getopts "h" opt; do
+    case $opt in
+        h) usage ;;
+        *) usage ;;
     esac
 done
+shift $((OPTIND - 1))
+if [ $# -ge 1 ]; then
+    REPORT_FILE="$1"
+fi
 
 check_privileges
-prepare_dirs
+mkdir -p "$TMP_DIR"
+mkdir -p "$(dirname "$REPORT_FILE")"
 
-# этап 1
-collect_basic
-collect_system
-collect_users
-collect_sshd
-collect_top5
-collect_suspicious
-collect_suid
-# этап 2
-build_report
-# этап 3
+{
+    echo "=== SYSTEM PASSPORT (Version: $FORMAT_VERSION) ==="
+    echo "Date: $(date)"
+    echo "Host: $(hostname)"
+    echo "User: $(whoami)"
+    echo "Privilege mode: $PRIV_MODE"
+} > "$REPORT_FILE"
+
+echo "Collecting user data..."
+: > "$TMP_DIR/users.tmp"
+while IFS=: read -r name pass uid gid gecos home shell; do
+    if [ "$uid" -eq 0 ] || [ "$uid" -ge 1000 ]; then
+        groups=$($SUDO id -nG "$name" 2>/dev/null | tr ' ' ',')
+        
+        if command -v lastlog2 >/dev/null 2>&1; then
+            last_login=$($SUDO lastlog2 -u "$name" 2>/dev/null | tail -n 1 | awk '{$1="";$2=""; print $0}' | sed 's/^ *//')
+        else
+            last_login=$($SUDO last -n 1 "$name" 2>/dev/null | head -n 1 | awk '{print $4, $5, $6, $7}')
+        fi
+        [ -z "$last_login" ] && last_login="No data"
+
+        if command -v chage >/dev/null 2>&1; then
+            pwd_change=$($SUDO LC_ALL=C chage -l "$name" 2>/dev/null | grep -i "Last password change" | cut -d: -f2 | sed 's/^ *//')
+        else
+            pwd_change="No data"
+        fi
+        [ -z "$pwd_change" ] && pwd_change="No data"
+
+        echo "Name: $name | UID: $uid | Groups: $groups | Last login: $last_login | Password change: $pwd_change" >> "$TMP_DIR/users.tmp"
+    fi
+done < <(getent passwd)
+write_section "Users" "$TMP_DIR/users.tmp"
+
+echo "Collecting sshd parameters..."
+if check_tool sshd "openssh-server"; then
+    $SUDO sshd -T 2>/dev/null | grep -Ei '^(permitrootlogin|port|logingracetime|maxauthtries|passwordauthentication|pubkeyauthentication) ' > "$TMP_DIR/sshd.tmp"
+    
+    CONFIG_FILES=$(find /etc/ssh/sshd_config /etc/ssh/sshd_config.d/ -type f 2>/dev/null)
+    : > "$TMP_DIR/sshd_explicit.tmp"
+    while read -r line; do
+        param=$(echo "$line" | awk '{print $1}')
+        if grep -qiE "^[[:space:]]*$param" $CONFIG_FILES 2>/dev/null; then
+            echo "$line (explicitly set)" >> "$TMP_DIR/sshd_explicit.tmp"
+        else
+            echo "$line (default)" >> "$TMP_DIR/sshd_explicit.tmp"
+        fi
+    done < "$TMP_DIR/sshd.tmp"
+    write_section "sshd parameters" "$TMP_DIR/sshd_explicit.tmp"
+else
+    echo "sshd not found." > "$TMP_DIR/sshd.tmp"
+    write_section "sshd parameters" "$TMP_DIR/sshd.tmp"
+fi
+
+echo "Analyzing processes..."
+ps -eo pid,ppid,user,pmem,comm --sort=-pmem | head -n 6 > "$TMP_DIR/top.tmp"
+write_section "Top-5 processes by memory" "$TMP_DIR/top.tmp"
+
+echo "Checking for suspicious accounts..."
+: > "$TMP_DIR/suspicious.tmp"
+if [ -r /etc/shadow ]; then
+    $SUDO awk -F: '$2=="" {print "Empty password: " $1}' /etc/shadow >> "$TMP_DIR/suspicious.tmp"
+    awk -F: '$3==0 && $1!="root" {print "UID 0 (non-root): " $1}' /etc/passwd >> "$TMP_DIR/suspicious.tmp"
+else
+    echo "No permission to read /etc/shadow" >> "$TMP_DIR/suspicious.tmp"
+fi
+write_section "Suspicious accounts" "$TMP_DIR/suspicious.tmp"
+
+echo "Searching for SUID files..."
+find /usr/bin /usr/sbin -type f -perm -4000 2>/dev/null > "$TMP_DIR/suid.tmp"
+write_section "SUID files" "$TMP_DIR/suid.tmp"
+
 log_run
-
-echo "Готово. Отчёт: $REPORT, лог: $LOG_FILE"
+echo "Report successfully generated: $REPORT_FILE"
+echo "Log written to: $LOG_FILE""
 ```
 
 Три проверки:
@@ -796,10 +686,7 @@ su - u3 -c ./script_passport_v3.sh      # без прав: отказ, код в
 cat PASSPORT/log/report.log             # после двух запусков — две строки
 ls PASSPORT/tmp                         # пусто: .tmp удалены
 ```
-
-> **[Нужен скриншот]** три запуска (root, пользователь с sudo, пользователь без прав) и три разных результата.
 >
-> **[Нужен файл/скриншот]** содержимое сгенерированного `PASSPORT/inventory.txt` и `PASSPORT/log/report.log` (после двух запусков — две строки с `формат отчёта: v3`).
 
 **Сравнение `lastlog2` и `lslogins`.** `lastlog2` хранит историю входов в собственной базе (`/var/lib/lastlog/lastlog2.db`), её пишет PAM-модуль при входе; для новых учётных записей показывает, что входов не было. `lslogins` — сводка по учётным записям из `/etc/passwd`, `shadow` и журналов входов (`wtmp`/`btmp`): UID, группы, статус пароля, последний вход. Источником данных о последнем входе на Debian 13 выбран `lastlog2`, `lslogins` удобен для общей сводки по пользователям.
 
