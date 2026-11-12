@@ -440,7 +440,6 @@ kill <PID>
 
 ```bash
 #!/bin/bash
-# script32 — раз в 2 секунды дописывает в ~/script32.log время, свой PID и PPID
 while true; do
     echo "$(date '+%F %T') PID=$$ PPID=$PPID" >> ~/script32.log
     sleep 2
